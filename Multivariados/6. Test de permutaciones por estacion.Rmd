@@ -1,0 +1,1843 @@
+---
+title: "Pre y Post Pandemia con Análisis Factorial"
+output: html_document
+date: "2024-09-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+
+library(dplyr)
+library(tidyr)
+library(psych)
+library(polycor)
+library(ggcorrplot)
+library(skimr)
+library(psych)
+library(base)
+library(lubridate)
+library(MASS)
+library(klaR)
+library(MVN)
+library(ggplot2)
+
+```
+
+```{r}
+
+df <- read.csv("factores_v3.csv")
+df$pandemia <- as.factor(df$pandemia)
+df
+
+```
+
+## Kruskal Wallis
+### Validando supuestos
+#### Homocedasticidad (No se cumple)
+```{r}
+
+dff <- df
+dff$pandemia <- as.factor(dff$pandemia)
+
+library(car)
+leveneTest(PA1 ~ pandemia, data = dff, center = "median")
+
+leveneTest(PA2 ~ pandemia, data = dff, center = "median")
+
+leveneTest(PA3 ~ pandemia, data = dff, center = "median")
+
+leveneTest(PA4 ~ pandemia, data = dff, center = "median")
+
+```
+
+En ninguno de los 4 factores se cumple el supuesto de homocedasticidad, según los restulados obtenidos por la prueba  de Levene, por lo que no es posible utilizar el test de Kruskal Wallis.
+
+
+
+
+```{r}
+
+PA1_0 <- df %>% 
+  filter(pandemia == "0") 
+
+PA1_1 <- df %>% 
+  filter(pandemia == "1")
+  
+plot(tail(PA1_0$PA1,10000),tail(PA1_1$PA1,10000), col = "peru")
+
+```
+
+
+
+
+#### Misma distribución (Si se cumple)
+```{r echo=FALSE}
+
+par(mfrow = c(1,2))
+
+dff <- df %>% 
+  filter(pandemia == 0)
+hist(dff$PA1, col = "lightyellow", main = "PA1 Pre-pandemia")
+
+dff <- df %>% 
+  filter(pandemia == 1)
+hist(dff$PA1, col = "lightyellow", main = "PA1 Post-pandemia")
+
+
+par(mfrow = c(1,2))
+
+dff <- df %>% 
+  filter(pandemia == 0)
+hist(dff$PA2, col = "lightyellow", main = "PA2 Pre-pandemia")
+
+dff <- df %>% 
+  filter(pandemia == 1)
+hist(dff$PA2, col = "lightyellow", main = "PA2 Post-pandemia")
+
+
+par(mfrow = c(1,2))
+
+dff <- df %>% 
+  filter(pandemia == 0)
+hist(dff$PA3, col = "lightyellow", main = "PA3 Pre-pandemia")
+
+dff <- df %>% 
+  filter(pandemia == 1)
+hist(dff$PA3, col = "lightyellow", main = "PA3 Post-pandemia")
+
+
+par(mfrow = c(1,2))
+
+dff <- df %>% 
+  filter(pandemia == 0)
+hist(dff$PA4, col = "lightyellow", main = "PA4 Pre-pandemia")
+
+dff <- df %>% 
+  filter(pandemia == 1)
+hist(dff$PA4, col = "lightyellow", main = "PA4 Post-pandemia")
+
+```
+
+Para que el test de Kruskall Wallis sea aplicable, es necesario que todas las variables sigan la misma distribución en ambas poblaciones. Y tras observar los histogramas, podemos suponer que este supuesto se cumple, pues parece ser que todas las variables de ambas poblaciones siguen una distribución con un alto sesgo hacia la derecha.
+
+
+## Dividiendo por estaciones
+```{r}
+
+df_cad <- df %>% 
+  filter(Estacion == "Cadereyta")
+
+df_obi <- df %>% 
+  filter(Estacion == "Obispado")
+
+df_cat <- df %>% 
+  filter(Estacion == "Santa Catarina")
+
+df_gar <- df %>% 
+  filter(Estacion == "Garcia")
+
+df_esc <- df %>% 
+  filter(Estacion == "Escobedo")
+
+df_ped <- df %>% 
+  filter(Estacion == "San Pedro")
+
+df_jua <- df %>% 
+  filter(Estacion == "Juarez")
+
+```
+
+
+Debido a que el supuesto de homocedasticidad no se cumple, el test de Kruskal Wallis no puede ser utilizado.
+
+
+
+## Test de Permutación: Simulación de Monte Carlo
+Como el método de Kruskal-Wallis no pudo ser implementado, se optó por realizar un test no paramétrico llamada Test d Permutación, cuyos supuestos no incluyen los previamente mencionados. 
+
+Para realizar este test fue necesario realizar una simulación de Monte Carlo, la cual nos regresa los siguientes resultados:
+
+### Estación Cadereyta
+#### PA1
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_cad, aes(x = as.factor(pandemia), y = PA1, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PM1 en Cadereyta por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_cad %>% filter(pandemia == "0") %>%
+                           pull(PA1) %>%
+                           mean()
+media_tratamiento <- df_cad %>% filter(pandemia == "1") %>%
+                           pull(PA1) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_cad %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_cad %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_cad$PA1) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PM1 en Cadereyta", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+Se concluye en este caso que la hipótesis nula se rechaza y por tanto no hay evidencia estadística para decir que las medias de ambos grupos poblacionales 
+
+
+#### PA2
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_cad, aes(x = as.factor(pandemia), y = PA2, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PM2 en Cadereyta por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_cad %>% filter(pandemia == "0") %>%
+                           pull(PA2) %>%
+                           mean()
+media_tratamiento <- df_cad %>% filter(pandemia == "1") %>%
+                           pull(PA2) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_cad %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_cad %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_cad$PA2) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA2 en Cadereyta", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+#### PA3
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_cad, aes(x = as.factor(pandemia), y = PA3, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PM3 en Cadereyta por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_cad %>% filter(pandemia == "0") %>%
+                           pull(PA3) %>%
+                           mean()
+media_tratamiento <- df_cad %>% filter(pandemia == "1") %>%
+                           pull(PA3) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_cad %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_cad %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_cad$PA3) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA3 en Cadereyta", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+
+#### PA4
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_cad, aes(x = as.factor(pandemia), y = PA4, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA4 en Cadereyta por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_cad %>% filter(pandemia == "0") %>%
+                           pull(PA4) %>%
+                           mean()
+media_tratamiento <- df_cad %>% filter(pandemia == "1") %>%
+                           pull(PA4) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_cad %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_cad %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_cad$PA4) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA4 en Cadereyta", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+### Estación Obispado
+#### PA1
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_obi, aes(x = as.factor(pandemia), y = PA1, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA1 en Obispado por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_obi %>% filter(pandemia == "0") %>%
+                           pull(PA1) %>%
+                           mean()
+media_tratamiento <- df_obi %>% filter(pandemia == "1") %>%
+                           pull(PA1) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_obi %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_obi %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_obi$PA1) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA1 en Obispado", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+#### PA2
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_obi, aes(x = as.factor(pandemia), y = PA2, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA2 en Obispado por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_obi %>% filter(pandemia == "0") %>%
+                           pull(PA2) %>%
+                           mean()
+media_tratamiento <- df_obi %>% filter(pandemia == "1") %>%
+                           pull(PA2) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_obi %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_obi %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_obi$PA2) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA2 en Obispado", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+#### PA3
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_obi, aes(x = as.factor(pandemia), y = PA3, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA3 en Obispado por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_obi %>% filter(pandemia == "0") %>%
+                           pull(PA3) %>%
+                           mean()
+media_tratamiento <- df_obi %>% filter(pandemia == "1") %>%
+                           pull(PA3) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_obi %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_obi %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_obi$PA3) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA3 en Obispado", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+#### PA4
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_obi, aes(x = as.factor(pandemia), y = PA4, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA4 en Obispado por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_obi %>% filter(pandemia == "0") %>%
+                           pull(PA4) %>%
+                           mean()
+media_tratamiento <- df_obi %>% filter(pandemia == "1") %>%
+                           pull(PA4) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_obi %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_obi %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_obi$PA4) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA4 en Obispado", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+### Estación Santa Catarina
+#### PA1
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_cat, aes(x = as.factor(pandemia), y = PA1, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PM1 en Santa Catarina por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_cat %>% filter(pandemia == "0") %>%
+                           pull(PA1) %>%
+                           mean()
+media_tratamiento <- df_cat %>% filter(pandemia == "1") %>%
+                           pull(PA1) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_cat %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_cat %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_cat$PA1) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA1 en Santa Catarina", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+#### PA2
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_cat, aes(x = as.factor(pandemia), y = PA2, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA2 en Santa Catarina por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_cat %>% filter(pandemia == "0") %>%
+                           pull(PA2) %>%
+                           mean()
+media_tratamiento <- df_cat %>% filter(pandemia == "1") %>%
+                           pull(PA2) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_cat %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_cat %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_cat$PA2) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA2 en Santa Catarina", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA3
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_cat, aes(x = as.factor(pandemia), y = PA3, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PM3 en Santa Catarina por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_cat %>% filter(pandemia == "0") %>%
+                           pull(PA3) %>%
+                           mean()
+media_tratamiento <- df_cat %>% filter(pandemia == "1") %>%
+                           pull(PA3) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_cat %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_cat %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_cat$PA3) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones en PA3 en Santa Catarina", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA4
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_cat, aes(x = as.factor(pandemia), y = PA4, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA4 en Santa Catarina por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_cat %>% filter(pandemia == "0") %>%
+                           pull(PA4) %>%
+                           mean()
+media_tratamiento <- df_cat %>% filter(pandemia == "1") %>%
+                           pull(PA4) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_cat %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_cat %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_cat$PA4) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA4 en Santa Catarina", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+### Estación García
+#### PA1
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_gar, aes(x = as.factor(pandemia), y = PA1, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA1 en García por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_gar %>% filter(pandemia == "0") %>%
+                           pull(PA1) %>%
+                           mean()
+media_tratamiento <- df_gar %>% filter(pandemia == "1") %>%
+                           pull(PA1) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_gar %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_gar %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_gar$PA1) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones PA1 en García", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA2
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_gar, aes(x = as.factor(pandemia), y = PA2, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA2 en García por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_gar %>% filter(pandemia == "0") %>%
+                           pull(PA2) %>%
+                           mean()
+media_tratamiento <- df_gar %>% filter(pandemia == "1") %>%
+                           pull(PA2) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_gar %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_gar %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_gar$PA2) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones PA2 en García", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA3
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_gar, aes(x = as.factor(pandemia), y = PA3, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA3 en García por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_gar %>% filter(pandemia == "0") %>%
+                           pull(PA3) %>%
+                           mean()
+media_tratamiento <- df_gar %>% filter(pandemia == "1") %>%
+                           pull(PA3) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_gar %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_gar %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_gar$PA3) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones PA3 en García", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA4
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_gar, aes(x = as.factor(pandemia), y = PA4, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PM4 en García por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_gar %>% filter(pandemia == "0") %>%
+                           pull(PA4) %>%
+                           mean()
+media_tratamiento <- df_gar %>% filter(pandemia == "1") %>%
+                           pull(PA4) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_gar %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_gar %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_gar$PA4) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones PA4 en García", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+
+### Estación Escobedo
+#### PA1
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_esc, aes(x = as.factor(pandemia), y = PA1, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA1 en Escobedo por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_esc %>% filter(pandemia == "0") %>%
+                           pull(PA1) %>%
+                           mean()
+media_tratamiento <- df_esc %>% filter(pandemia == "1") %>%
+                           pull(PA1) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_esc %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_esc %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_esc$PA1) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA1 es Escobedo", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA2
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_esc, aes(x = as.factor(pandemia), y = PA2, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA2 en Escobedo por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_esc %>% filter(pandemia == "0") %>%
+                           pull(PA2) %>%
+                           mean()
+media_tratamiento <- df_esc %>% filter(pandemia == "1") %>%
+                           pull(PA2) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_esc %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_esc %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_esc$PA2) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA2 es Escobedo", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA3
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_esc, aes(x = as.factor(pandemia), y = PA3, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA3 en Escobedo por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_esc %>% filter(pandemia == "0") %>%
+                           pull(PA3) %>%
+                           mean()
+media_tratamiento <- df_esc %>% filter(pandemia == "1") %>%
+                           pull(PA3) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_esc %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_esc %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_esc$PA3) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA3 es Escobedo", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA4
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_esc, aes(x = as.factor(pandemia), y = PA4, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA4 en Escobedo por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_esc %>% filter(pandemia == "0") %>%
+                           pull(PA4) %>%
+                           mean()
+media_tratamiento <- df_esc %>% filter(pandemia == "1") %>%
+                           pull(PA4) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_esc %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_esc %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_esc$PA4) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA4 es Escobedo", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+### Estación San Pedro
+#### PA1
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_ped, aes(x = as.factor(pandemia), y = PA1, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA1 en San Pedro por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_ped %>% filter(pandemia == "0") %>%
+                           pull(PA1) %>%
+                           mean()
+media_tratamiento <- df_ped %>% filter(pandemia == "1") %>%
+                           pull(PA1) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_ped %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_ped %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_ped$PA1) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA1 en San Pedro", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA2
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_ped, aes(x = as.factor(pandemia), y = PA2, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA2 en San Pedro por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_ped %>% filter(pandemia == "0") %>%
+                           pull(PA2) %>%
+                           mean()
+media_tratamiento <- df_ped %>% filter(pandemia == "1") %>%
+                           pull(PA2) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_ped %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_ped %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_ped$PA2) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA2 en San Pedro", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA3
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_ped, aes(x = as.factor(pandemia), y = PA3, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA3 en San Pedro por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_ped %>% filter(pandemia == "0") %>%
+                           pull(PA3) %>%
+                           mean()
+media_tratamiento <- df_ped %>% filter(pandemia == "1") %>%
+                           pull(PA3) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_ped %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_ped %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_ped$PA3) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA3 en San Pedro", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA4
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_ped, aes(x = as.factor(pandemia), y = PA4, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA4 en San Pedro por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_ped %>% filter(pandemia == "0") %>%
+                           pull(PA4) %>%
+                           mean()
+media_tratamiento <- df_ped %>% filter(pandemia == "1") %>%
+                           pull(PA4) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_ped %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_ped %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_ped$PA4) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA4 en San Pedro", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+
+### Estación Juárez
+#### PA1
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_jua, aes(x = as.factor(pandemia), y = PA1, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA1 en Juárez por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_jua %>% filter(pandemia == "0") %>%
+                           pull(PA1) %>%
+                           mean()
+media_tratamiento <- df_jua %>% filter(pandemia == "1") %>%
+                           pull(PA1) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_jua %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_jua %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_jua$PA1) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA1 en Juárez", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA2
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_jua, aes(x = as.factor(pandemia), y = PA2, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA2 en Juárez por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_jua %>% filter(pandemia == "0") %>%
+                           pull(PA2) %>%
+                           mean()
+media_tratamiento <- df_jua %>% filter(pandemia == "1") %>%
+                           pull(PA2) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_jua %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_jua %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_jua$PA2) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA2 en Juárez", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA3
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_jua, aes(x = as.factor(pandemia), y = PA3, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA3 en Juárez por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_jua %>% filter(pandemia == "0") %>%
+                           pull(PA3) %>%
+                           mean()
+media_tratamiento <- df_jua %>% filter(pandemia == "1") %>%
+                           pull(PA3) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_jua %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_jua %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_jua$PA3) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA3 en Juárez", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+#### PA4
+```{r warning=FALSE}
+
+library(cowplot)
+
+ggplot(data = df_jua, aes(x = as.factor(pandemia), y = PA4, colour = as.factor(pandemia))) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.25) +
+    scale_color_manual(values = c("gray50", "orangered2")) +
+    coord_flip() +
+    theme_bw() +
+    labs(title = "Boxplot de PA4 en Juárez por Clases") +
+    xlab("Período (0: Pandemia, 1: NO Pandemia)")
+    theme(legend.position = "none")
+
+```
+
+```{r warning=FALSE}
+
+media_control <- df_jua %>% filter(pandemia == "0") %>%
+                           pull(PA4) %>%
+                           mean()
+media_tratamiento <- df_jua %>% filter(pandemia == "1") %>%
+                           pull(PA4) %>%
+                           mean()
+dif_obs <- media_control - media_tratamiento
+
+distribucion_permut <- rep(NA, 9999)
+n_control <- df_jua %>% filter(pandemia == "0") %>% nrow()
+n_tratamiento <- df_jua %>% filter(pandemia == "1") %>% nrow()
+
+for (i in 1:9999) {
+  # mezclado aleatorio de las observaciones
+  datos_aleatorizados <- sample(df_jua$PA4) 
+  mean_control <- mean(datos_aleatorizados[1:n_control])
+  mean_tratamiento <- mean(datos_aleatorizados[n_control + 1:n_tratamiento])
+  distribucion_permut[i] <- mean_control - mean_tratamiento
+}
+
+ggplot(data = data.frame(permutaciones = distribucion_permut),
+      aes(permutaciones)) +
+  geom_histogram(aes(y = ..density..), alpha = 0.4, colour = "white") + 
+  geom_line(aes(y = ..density..), stat = 'density', colour = "red") +
+  geom_vline(xintercept = mean(distribucion_permut)) +
+  geom_vline(xintercept = dif_obs, colour = "blue") +
+  geom_vline(xintercept = -dif_obs, colour = "blue") +
+  labs(title = "Distribución de permutaciones de PA4 en Juárez", x = "diferencia de medias") +
+  theme_bw()
+
+```
+
+```{r}
+
+# Con corrección
+p_value_corregido = ((sum(abs(distribucion_permut) > abs(dif_obs))) + 1)/(9999 + 1)
+p_value_corregido
+
+```
+
+
+
+
+

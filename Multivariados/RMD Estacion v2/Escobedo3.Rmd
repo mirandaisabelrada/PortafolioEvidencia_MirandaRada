@@ -1,0 +1,389 @@
+---
+title: "Escobedo"
+output: html_document
+---
+
+# Carga de datos
+
+```{r}
+df_sinNA<-read.csv("C:/Users/OFICINA/Documents/R studio/MULTIVARIADOS/RETO/Bases de datos Estacion/Escobedo.csv")
+df_sinNA<-na.omit(df_sinNA)
+head(df_sinNA)
+```
+
+
+# Correlación
+
+```{r}
+library(corrplot)
+
+correlacion <- cor(df_sinNA[c(-1,-17, -18, -19 ,-20)])
+corrplot(correlacion, method = "circle")
+```
+
+
+```{r}
+library(dplyr)
+
+correlacion_df <- as.data.frame(as.table(correlacion))
+
+correlacion_ordenada <- correlacion_df %>%
+  filter(Var1 != Var2) %>% 
+  arrange(desc(abs(Freq)))
+
+# Suponiendo que ya tenemos el DataFrame correlacion_ordenada
+correlaciones_fuertes <- correlacion_ordenada %>%
+  filter(abs(Freq) >= 0.3)
+
+correlaciones_fuertes
+
+```
+
+
+# Creación de los modelos mixtos para cada variable
+
+#### CO
+
+```{r}
+# Filtrar las correlaciones donde CO está involucrada
+correlaciones_con_CO <- correlaciones_fuertes %>%
+  filter(Var1 == "CO" )
+
+correlaciones_con_CO
+```
+
+```{r}
+library(lme4)
+library(Matrix)
+mod_CO <- lmer(CO ~ NOX+NO+PM2.5+SO2+ NO2+season + (1 | pandemia)+ (1| WSR) +(1 | WDR), data = df_sinNA)
+summary(mod_CO)
+```
+
+```{r}
+library(ggplot2)
+ggplot(df_sinNA, aes(x = date, y = CO)) +
+  geom_point(aes(color=factor(pandemia),shape=factor(season))) +
+  labs(title = "Contaminante CO a lo largo del tiempo", x = "fecha", y = "CO") +
+  theme_minimal()
+```
+
+#### NO
+
+```{r}
+# Filtrar las correlaciones donde CO está involucrada
+correlaciones_con_NO <- correlaciones_fuertes %>%
+  filter(Var1 == "NO" )
+
+correlaciones_con_NO
+```
+
+```{r}
+library(lme4)
+library(Matrix)
+mod_NO <- lmer(NO ~ NOX+NO2+CO+PM10+PM2.5+season+ (1 | pandemia )+ (1 | WSR) +(1 | WDR), data = df_sinNA)
+summary(mod_NO)
+```
+```{r}
+ggplot(df_sinNA, aes(x = date, y = NO)) +
+  geom_point(aes(color=factor(pandemia),shape=factor(season))) +
+  labs(title = "Contaminante NO a lo largo del tiempo", x = "fecha", y = "NO") +
+  theme_minimal()
+```
+#### NO2
+
+```{r}
+# Filtrar las correlaciones donde CO está involucrada
+correlaciones_con_NO2 <- correlaciones_fuertes %>%
+  filter(Var1 == "NO2" )
+
+correlaciones_con_NO2
+```
+
+
+```{r}
+library(lme4)
+library(Matrix)
+mod_NO2 <- lmer(NO2 ~ + CO + NO+NOX+PM10+PM2.5 +season+ (1 | pandemia)+ (1 | WSR) +(1 | WDR), data = df_sinNA)
+summary(mod_NO2)
+```
+```{r}
+ggplot(df_sinNA, aes(x = date, y = NO2)) +
+  geom_point(aes(color=factor(pandemia),shape=factor(season))) +
+  labs(title = "Contaminante NO2 a lo largo del tiempo", x = "fecha", y = "NO2") +
+  theme_minimal()
+```
+#### NOX
+
+
+```{r}
+# Filtrar las correlaciones donde CO está involucrada
+correlaciones_con_NOX <- correlaciones_fuertes %>%
+  filter(Var1 == "NOX" )
+
+correlaciones_con_NOX
+```
+
+
+```{r}
+library(lme4)
+library(Matrix)
+mod_NOX <- lmer(NOX ~ + CO + NO2+NO+O3+PM10+PM2.5+TOUT+season + (1 | pandemia) + (1 | WSR) +(1 | WDR), data = df_sinNA)
+summary(mod_NOX)
+```
+```{r}
+ggplot(df_sinNA, aes(x = date, y = NOX)) +
+  geom_point(aes(color=factor(pandemia),shape=factor(season))) +
+  labs(title = "Contaminante NOX a lo largo del tiempo", x = "fecha", y = "NOX") +
+  theme_minimal()
+```
+#### O3
+
+```{r}
+# Filtrar las correlaciones donde CO está involucrada
+correlaciones_con_O3 <- correlaciones_fuertes %>%
+  filter(Var1 == "O3" )
+
+correlaciones_con_O3
+```
+
+```{r}
+library(lme4)
+library(Matrix)
+mod_O3 <- lmer(O3 ~ NOX+RH+NOX +season+ (1 | pandemia) + (1 | WSR) +(1 | WDR), data = df_sinNA)
+summary(mod_O3)
+```
+
+
+```{r}
+ggplot(df_sinNA, aes(x = date, y = O3)) +
+  geom_point(aes(color=factor(pandemia),shape=factor(season))) +
+  labs(title = "Contaminante O3 a lo largo del tiempo", x = "fecha", y = "O3") +
+  theme_minimal()
+```
+
+#### PM10
+
+```{r}
+# Filtrar las correlaciones donde CO está involucrada
+correlaciones_con_pm10 <- correlaciones_fuertes %>%
+  filter(Var1 == "PM10")
+
+correlaciones_con_pm10
+```
+
+```{r}
+library(lme4)
+library(Matrix)
+mod_PM10 <- lmer(PM10 ~ NO2+NOX+NO+PM2.5+season+ (1 | pandemia)+ (1 | WSR) +(1 | WDR), data = df_sinNA)
+summary(mod_PM10)
+```
+```{r}
+ggplot(df_sinNA, aes(x = date, y = PM10)) +
+  geom_point(aes(color=factor(pandemia),shape=factor(season))) +
+  labs(title = "Contaminante PM10 a lo largo del tiempo", x = "fecha", y = "PM10") +
+  theme_minimal()
+```
+
+```{r}
+#verificación de normalidad
+
+qqnorm(ranef(mod_PM10)$pandemia$'(Intercept)', main = "Q-Q Plot de Efectos Aleatorios: Intercepto")
+qqline(ranef(mod_PM10)$pandemia$'(Intercept)')
+
+
+#residuales
+qqnorm(resid(mod_PM10), main = "Q-Q Plot de Residuos")
+qqline(resid(mod_PM10))
+
+ggplot(df_sinNA, aes(x = resid(mod_PM10))) +
+  geom_histogram(binwidth = 1) +
+  labs(title = "Histograma de Residuos",
+       x = "Residuo",
+       y = "Frecuencia")
+
+#homocedasticidad
+ggplot(df_sinNA, aes(x = fitted(mod_PM10), y = resid(mod_PM10))) +
+  geom_point() +
+  labs(title = "Residuos vs. Predicciones",
+       x = "Predicciones",
+       y = "Residuos") +
+  theme_minimal()
+
+#independencia
+library(lmtest)
+dwtest(resid(mod_PM10) ~ fitted(mod_PM10))
+
+
+#linealidad con respecto a las variables
+ggplot(df_sinNA, aes(x = date, y = resid(mod_PM10))) +
+  geom_point() +
+  labs(title = "Residuos vs. Fecha",
+       x = "Fecha",
+       y = "Residuos") +
+theme_minimal()
+```
+
+###### Transformación de BoxCox
+
+
+```{r}
+
+library(MASS)
+library(e1071)
+
+A_x1 <- lm(PM10~ 1, data = df_sinNA)
+
+tr_x1 <- boxcox(A_x1)
+
+lambda_x1<-tr_x1$x[which.max(tr_x1$y)]
+
+cat("El valor de LAMBDA para la variable X1 que maximiza la función de verosimilitud es: ", lambda_x1)
+
+```
+
+
+```{r}
+#DATOS TRANSFORMADOS
+x1_ex <- (((df_sinNA$PM10)^lambda_x1) - 1) / lambda_x1
+```
+
+```{r}
+cat("Datos de la transformación Exacta para la variable x1", "\n")
+summary(x1_ex)
+
+cat("\n")  
+
+cat("Curtosis: ", kurtosis(x1_ex), "\n")
+cat("Sesgo: ", skewness(x1_ex))
+```
+```{r}
+library(nortest)
+cat("Datos de la transformación Exacta para la variable PM10", "\n")
+# Anderson-Darling
+resultado_test_x1_ex <- ad.test(x1_ex)
+
+# Imprimiendo el valor p
+cat("Valor p del test de Anderson-Darling:", resultado_test_x1_ex$p.value, "\n")
+
+```
+###### Prueba de Homocedasticidad
+
+```{r}
+#verificación de normalidad
+
+qqnorm(ranef(mod_PM10)$pandemia$'(Intercept)', main = "Q-Q Plot de Efectos Aleatorios: Intercepto")
+qqline(ranef(mod_PM10)$pandemia$'(Intercept)')
+
+
+#residuales
+qqnorm(resid(mod_PM10), main = "Q-Q Plot de Residuos")
+qqline(resid(mod_PM10))
+
+ggplot(data.frame(x1_ex), aes(x = resid(mod_PM10))) +
+  geom_histogram(binwidth = 1) +
+  labs(title = "Histograma de Residuos",
+       x = "Residuo",
+       y = "Frecuencia")
+
+#homocedasticidad
+ggplot(data.frame(x1_ex), aes(x = fitted(mod_PM10), y = resid(mod_PM10))) +
+  geom_point() +
+  labs(title = "Residuos vs. Predicciones",
+       x = "Predicciones",
+       y = "Residuos") +
+  theme_minimal()
+
+#independencia
+library(lmtest)
+dwtest(resid(mod_PM10) ~ fitted(mod_PM10))
+
+
+```
+
+
+
+#### PM2.5
+
+```{r}
+# Filtrar las correlaciones donde CO está involucrada
+correlaciones_con_pm25 <- correlaciones_fuertes %>%
+  filter(Var1 == "PM2.5" )
+
+correlaciones_con_pm25
+```
+
+
+```{r}
+library(lme4)
+library(Matrix)
+mod_PM2.5 <- lmer(PM2.5 ~ + CO + NO2+NOX+PM10+NO+season + (1 | pandemia)+ (1 | WSR) +(1 | WDR), data = df_sinNA)
+summary(mod_PM2.5)
+```
+
+
+```{r}
+ggplot(df_sinNA, aes(x = date, y = PM2.5)) +
+  geom_point(aes(color=factor(pandemia),shape=factor(season))) +
+  labs(title = "Contaminante PM2.5 a lo largo del tiempo", x = "fecha", y = "PM2.5") +
+  theme_minimal()
+```
+
+
+#### SO2
+
+```{r}
+# Filtrar las correlaciones donde CO está involucrada
+correlaciones_con_SO2 <- correlaciones_fuertes %>%
+  filter(Var1 == "SO2" )
+
+correlaciones_con_SO2
+```
+
+
+```{r}
+library(lme4)
+library(Matrix)
+mod_SO2 <- lmer(SO2 ~  CO +season+ (1 | pandemia)+ (1 | WSR) +(1 | WDR), data = df_sinNA)
+summary(mod_SO2)
+```
+```{r}
+ggplot(df_sinNA, aes(x = date, y = SO2)) +
+  geom_point(aes(color=factor(pandemia),shape=factor(season))) +
+  labs(title = "Contaminante SO2 a lo largo del tiempo", x = "fecha", y = "SO2") +
+  theme_minimal()
+```
+
+```{r}
+cat("\033[3mEl modelo generado para CO es\033[0m: \n" )
+cat("\n")
+mod_CO
+cat("\n")
+cat("\033[3mEl modelo generado para NO es\033[0m: \n" )
+cat("\n")
+mod_NO
+cat("\n")
+cat("\033[3mEl modelo generado para NO2 es\033[0m: \n" )
+cat("\n")
+mod_NO2
+cat("\n")
+cat("\033[3mEl modelo generado para NOX es\033[0m: \n" )
+cat("\n")
+mod_NOX
+cat("\n")
+cat("\033[3mEl modelo generado para O3 es\033[0m \n" )
+cat("\n")
+mod_O3
+cat("\n")
+cat("\033[3mEl modelo generado para PM10 es\033[0m \n" )
+cat("\n")
+mod_PM10
+cat("\n")
+cat("\033[3mEl modelo generado para PM2.5 es\033[0m \n" )
+cat("\n")
+mod_PM2.5
+cat("\n")
+cat("\033[3mEl modelo generado para SO2 es\033[0m \n" )
+cat("\n")
+mod_SO2
+```
+

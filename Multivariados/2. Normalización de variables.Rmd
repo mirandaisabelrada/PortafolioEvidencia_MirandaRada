@@ -1,0 +1,466 @@
+---
+title: "Reto Etapa 2 - Normalización"
+author: "Equipo 7"
+date: "2024-08-20"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##  Carga de datos
+```{r}
+df <- read.csv("Bas.csv")
+head(df)
+```
+### Ajsute de formato de la columna date 
+
+```{r}
+df$date <- as.Date(df$date, format="%d-%m-%Y")
+```
+
+
+```{r}
+
+numeric_columns <- sapply(df, is.numeric)
+
+# Filtramos el DataFrame para mantener solo los registros donde todas las columnas numéricas sean >= 0
+df1 <- df[apply(df[, numeric_columns], 1, function(x) all(x >= 0)), ]
+
+summary(df1)
+
+```
+
+
+```{r}
+#write.csv(df1, "DataBase-limpia.csv", row.names = FALSE)
+```
+
+## Variables sin técnicas de normalización
+
+```{r}
+library(nortest)
+```
+
+
+```{r}
+colnames(df1[, 2:9])
+```
+### CO
+
+```{r}
+plot(df1$date,df1$CO)
+hist(df1$CO)
+lillie.test(df1$CO)
+```
+
+### NO
+
+```{r}
+plot(df1$date,df1$NO)
+hist(df1$NO)
+lillie.test(df1$NO)
+```
+
+
+### NO2
+
+```{r}
+plot(df1$date,df1$NO2)
+hist(df1$NO2)
+lillie.test(df1$NO2)
+```
+
+### NOX
+
+```{r}
+plot(df1$date,df1$NOX)
+hist(df1$NOX)
+lillie.test(df1$NOX)
+```
+
+
+### O3
+
+```{r}
+plot(df1$date,df1$O3)
+hist(df1$O3)
+lillie.test(df1$O3)
+```
+
+
+### PM10
+
+```{r}
+plot(df1$date,df1$PM10)
+hist(df1$PM10)
+lillie.test(df1$PM10)
+```
+
+
+### PM2.5
+
+```{r}
+plot(df1$date,df1$PM2.5)
+hist(df1$PM2.5)
+lillie.test(df1$PM2.5)
+```
+
+
+### PRS
+
+```{r}
+plot(df1$date,df1$PRS)
+hist(df1$PRS)
+lillie.test(df1$PRS)
+```
+
+### RAINF
+
+```{r}
+plot(df1$date,df1$RAINF)
+hist(df1$RAINF)
+lillie.test(df1$RAINF)
+```
+
+
+
+
+### RH
+```{r}
+plot(df1$date,df1$RH)
+hist(df1$RH)
+lillie.test(df1$RH)
+```
+
+
+### SO2
+
+```{r}
+plot(df1$date,df1$SO2)
+hist(df1$SO2)
+lillie.test(df1$SO2)
+```
+
+
+
+
+### SR
+
+```{r}
+plot(df1$date,df1$SR)
+hist(df1$SR)
+lillie.test(df1$SR)
+```
+
+
+### TOUT
+```{r}
+plot(df1$date,df1$TOUT)
+hist(df1$TOUT)
+lillie.test(df1$TOUT)
+```
+
+
+
+
+
+```{r}
+
+library(bestNormalize)
+
+
+# Aplicar la transformación Yeo-Johnson
+resultTOUT <- bestNormalize(df1$TOUT)
+df1$TOUTN <- resultTOUT$x.t
+```
+
+```{r}
+hist(df1$TOUTN)
+```
+
+
+### WSR
+
+```{r}
+plot(df1$date,df1$WSR)
+hist(df1$WSR)
+lillie.test(df1$WSR)
+```
+
+### WDR
+
+```{r}
+plot(df1$date, df1$WDR)
+hist(df1$WDR)
+ad.test(df1$WDR)
+```
+## Normalización de Datos
+
+
+```{r}
+df1
+```
+
+
+```{r}
+
+# Calcular el porcentaje de ceros por columna
+percentage_zeros_per_column <- sapply(df1, function(column) {
+  num_zeros <- sum(column == 0)
+  total_elements <- length(column)
+  (num_zeros / total_elements) * 100
+})
+
+# Mostrar el resultado
+round(percentage_zeros_per_column,1)*100
+
+```
+
+
+```{r}
+colnames(df)
+```
+```{r}
+# Se cargaron las librerías necesarias
+library(tseries)
+library(bestNormalize)
+```
+
+
+
+### CON
+
+```{r}
+resultCO <- bestNormalize(df1$CO)
+df1$CON <- resultCO$x.t
+plot(df1$date, df1$CON)
+hist(df1$CON)
+jarque.bera.test(df1$CON)
+```
+
+### NON
+
+```{r}
+resultNO <- bestNormalize(df1$NO)
+df1$NON <- resultNO$x.t
+plot(df1$date, df1$NON)
+hist(df1$NON)
+jarque.bera.test(df1$NON)
+```
+
+### NO2N
+
+```{r}
+resultNO2 <- bestNormalize(df1$NO2)
+df1$NO2N <- resultNO2$x.t
+plot(df1$date, df1$NO2N)
+hist(df1$NO2N)
+jarque.bera.test(df1$NO2N)
+```
+
+
+### NOXN
+
+```{r}
+resultNOX <- bestNormalize(df1$NOX)
+df1$NOXN <- resultNOX$x.t
+plot(df1$date, df1$NOXN)
+hist(df1$NOXN)
+jarque.bera.test(df1$NOXN)
+```
+
+
+### O3N
+
+```{r}
+resultO3 <- bestNormalize(df1$O3)
+df1$O3N <- resultO3$x.t
+plot(df1$date, df1$O3N)
+hist(df1$O3N)
+jarque.bera.test(df1$O3N)
+```
+
+### PM10N
+
+```{r}
+
+resultPM10 <- bestNormalize(df1$PM10)
+df1$PM10N <- resultPM10$x.t
+plot(df1$date, df1$PM10N)
+hist(df1$PM10N)
+jarque.bera.test(df1$PM10N)
+```
+
+
+### PM2.5N
+
+```{r}
+resultPM25 <- bestNormalize(df1$PM2.5)
+df1$PM25N <- resultPM25$x.t
+plot(df1$date, df1$PM25N)
+hist(df1$PM25N)
+jarque.bera.test(df1$PM25N)
+
+```
+
+### PRSN
+
+```{r}
+resultPRS <- bestNormalize(df1$PRS)
+df1$PRSN <- resultPRS$x.t
+plot(df1$date, df1$PRSN)
+hist(df1$PRSN)
+jarque.bera.test(df1$PRSN)
+```
+
+### RHN
+
+
+
+```{r}
+resultRH <- bestNormalize(df1$RH)
+df1$RHN <- resultRH$x.t
+plot(df1$date, df1$RHN)
+hist(df1$RHN)
+jarque.bera.test(df1$RHN)
+```
+
+### SO2N
+
+```{r}
+resultSO2 <- bestNormalize(df1$SO2)
+df1$SO2N <- resultSO2$x.t
+plot(df1$date, df1$SO2N)
+hist(df1$SO2N)
+jarque.bera.test(df1$SO2N)
+```
+
+
+
+### SRN
+```{r}
+resultSR <- bestNormalize(df1$SR)
+df1$SRN <- resultSR$x.t
+plot(df1$date, df1$SRN, main="SR Normalizado", xlab="Fecha", ylab="SRN")
+hist(df1$SRN, main="Histograma de SRN", xlab="SRN")
+jarque.bera.test(df1$SRN)
+```
+
+### TOUTN
+
+```{r}
+resultTOUT <- bestNormalize(df1$TOUT)
+df1$TOUTN <- resultTOUT$x.t
+plot(df1$date, df1$TOUTN, main="TOUT Normalizado", xlab="Fecha", ylab="TOUTN")
+hist(df1$TOUTN, main="Histograma de TOUTN", xlab="TOUTN")
+jarque.bera.test(df1$TOUTN)
+```
+
+### WSRN
+```{r}
+resultWSR <- bestNormalize(df1$WSR)
+df1$WSRN <- resultWSR$x.t
+plot(df1$date, df1$WSRN, main="WSR Normalizado", xlab="Fecha", ylab="WSRN")
+hist(df1$WSRN, main="Histograma de WSRN", xlab="WSRN")
+jarque.bera.test(df1$WSRN)
+```
+
+
+### WDRN
+
+```{r}
+resultWDR <- bestNormalize(df1$WDR)
+df1$WDRN <- resultWDR$x.t
+plot(df1$date, df1$WDRN, main="WDR Normalizado", xlab="Fecha", ylab="WDRN")
+hist(df1$WDRN, main="Histograma de WDRN", xlab="WDRN")
+jarque.bera.test(df1$WDRN)
+```
+
+```{r}
+
+#skewness_SO2N <- skewness(df1$SO2N)
+#kurtosis_SO2N <- kurtosis(df1$SO2N)
+#cat("Skewness de SO2N:", skewness_SO2N, "\n")
+#cat("Kurtosis de SO2N:", kurtosis_SO2N, "\n\n")
+```
+
+## Sesgo y Kurtosis
+
+```{r}
+library(e1071)
+
+skewness_CON <- skewness(df1$CON)
+kurtosis_CON <- kurtosis(df1$CON)
+cat("Skewness de CON:", skewness_CON, "\n")
+cat("Kurtosis de CON:", kurtosis_CON, "\n\n")
+
+skewness_NON <- skewness(df1$NON)
+kurtosis_NON <- kurtosis(df1$NON)
+cat("Skewness de NON:", skewness_NON, "\n")
+cat("Kurtosis de NON:", kurtosis_NON, "\n\n")
+
+skewness_NO2N <- skewness(df1$NO2N)
+kurtosis_NO2N <- kurtosis(df1$NO2N)
+cat("Skewness de NO2N:", skewness_NO2N, "\n")
+cat("Kurtosis de NO2N:", kurtosis_NO2N, "\n\n")
+
+skewness_NOXN <- skewness(df1$NOXN)
+kurtosis_NOXN <- kurtosis(df1$NOXN)
+cat("Skewness de NOXN:", skewness_NOXN, "\n")
+cat("Kurtosis de NOXN:", kurtosis_NOXN, "\n\n")
+
+skewness_O3N <- skewness(df1$O3N)
+kurtosis_O3N <- kurtosis(df1$O3N)
+cat("Skewness de O3N:", skewness_O3N, "\n")
+cat("Kurtosis de O3N:", kurtosis_O3N, "\n\n")
+
+skewness_PM10N <- skewness(df1$PM10N)
+kurtosis_PM10N <- kurtosis(df1$PM10N)
+cat("Skewness de PM10N:", skewness_PM10N, "\n")
+cat("Kurtosis de PM10N:", kurtosis_PM10N, "\n\n")
+
+skewness_PM25N <- skewness(df1$PM25N)
+kurtosis_PM25N <- kurtosis(df1$PM25N)
+cat("Skewness de PM25N:", skewness_PM25N, "\n")
+cat("Kurtosis de PM25N:", kurtosis_PM25N, "\n\n")
+
+skewness_PRSN <- skewness(df1$PRSN)
+kurtosis_PRSN <- kurtosis(df1$PRSN)
+cat("Skewness de PRSN:", skewness_PRSN, "\n")
+cat("Kurtosis de PRSN:", kurtosis_PRSN, "\n\n")
+
+skewness_RHN <- skewness(df1$RHN)
+kurtosis_RHN <- kurtosis(df1$RHN)
+cat("Skewness de RHN:", skewness_RHN, "\n")
+cat("Kurtosis de RHN:", kurtosis_RHN, "\n\n")
+
+#skewness_SRN <- skewness(df1$SRN)
+#kurtosis_SRN <- kurtosis(df1$SRN)
+#cat("Skewness de SRN:", skewness_SRN, "\n")
+#cat("Kurtosis de SRN:", kurtosis_SRN, "\n\n")
+
+skewness_TOUTN <- skewness(df1$TOUTN)
+kurtosis_TOUTN <- kurtosis(df1$TOUTN)
+cat("Skewness de TOUTN:", skewness_TOUTN, "\n")
+cat("Kurtosis de TOUTN:", kurtosis_TOUTN, "\n\n")
+
+skewness_WSRN <- skewness(df1$WSRN)
+kurtosis_WSRN <- kurtosis(df1$WSRN)
+cat("Skewness de WSRN:", skewness_WSRN, "\n")
+cat("Kurtosis de WSRN:", kurtosis_WSRN, "\n\n")
+
+skewness_WDRN <- skewness(df1$WDRN)
+kurtosis_WDRN <- kurtosis(df1$WDRN)
+cat("Skewness de WDRN:", skewness_WDRN, "\n")
+cat("Kurtosis de WDRN:", kurtosis_WDRN, "\n")
+
+```
+
+
+
+

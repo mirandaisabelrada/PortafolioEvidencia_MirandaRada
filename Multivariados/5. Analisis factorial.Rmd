@@ -1,0 +1,269 @@
+---
+title: "Reto Avance 3 Punto 2"
+author: "Kevin Jesús Martínez Trinidad - A00834493"
+date: "2024-08-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+
+library(dplyr)
+library(tidyr)
+library(psych)
+library(polycor)
+library(ggcorrplot)
+library(skimr)
+library(psych)
+library(base)
+library(lubridate)
+library(MASS)
+library(klaR)
+library(MVN)
+library(ggplot2)
+
+```
+
+
+## Introduciendo y Analizando Base de Datos
+```{r}
+
+df <- read.csv("df_v5.csv")
+df$date<- as.Date(df$date,"%d/%m/%y")
+tail(df,6)
+
+```
+
+```{r echo=FALSE}
+
+skim_without_charts(df)
+
+```
+
+### Creación de Categorías
+Dividimos las fechas en períodos (mayormente anuales) y en dos categorías: "antes de la pandemia" y "después de la pandemia".
+```{r}
+
+# Asumimos que df$date es una columna con fechas
+df <- df %>%
+  mutate(
+    periodo = case_when(
+      date <= "2020-03-16" ~ 1,
+      date > "2020-03-16" & date <= "2021-03-16" ~ 2,
+      date > "2021-03-16" & date <= "2022-03-16" ~ 3,
+      date > "2022-03-16" & date <= "2023-03-16" ~ 4,
+      TRUE ~ 5
+    )
+  )
+
+# Asumimos que df$date es una columna con fechas
+df <- df %>%
+  mutate(
+    pandemia = case_when(
+      periodo == 2 | periodo == 3 ~ 0,
+      TRUE ~ 1
+    )
+  )
+
+```
+
+```{r}
+df
+```
+
+
+##### Se eliminan variables que no serán utilizadas
+```{r warning=FALSE}
+
+library(dplyr)
+df2 <- df %>% 
+  drop_na() %>% 
+  select(-date)
+
+df_num <- df2 %>% 
+  select(-pandemia, -PRS, -RAINF, -WSR, -WDR, -RH,-SR, -TOUT, -Estacion, -periodo)
+
+```
+
+
+## Análisis Factorial
+### Validación de Supuestos
+Para poder realizar un análisis factorial es necesario que exista un mínimo de correlación entre las variables, así como un mínimo de varianza explicada por los factores. 
+
+##### Analizando la correlación entre las variables
+```{r message=FALSE, warning=FALSE}
+
+corr.test(df_num,adjust="none")
+mat_cor <- hetcor(df_num)$correlations #matriz de correlación policórica
+ggcorrplot(mat_cor,type="lower",hc.order = T)
+
+```
+
+
+```{r echo=FALSE}
+
+R = cor(df_num)
+K = KMO(df_num)
+cat("El valor del KMO es: ", K$MSA)
+
+```
+
+**Dado que el KMA es mayor que 0.5, es factible realizar el análisis factorial, ya que esto nos indica que existe suficiente correlación entre las variables.**
+
+```{r message=FALSE, warning=FALSE}
+
+scree(R) # se grafican los valores propios de R, y del análisis Factorial
+
+```
+
+**A partir de la gráfica anterior es posible saber que un excelente número de factores es de 3**
+
+
+### Creación de modelos 
+Tras investigar y probar con varias configuraciones, decidimos utilizar una rotación varimax, la más utilizada; y el método de factores principales, el cual funciona mejor cuando no se presenta normalidad en las variables, siendo este el caso (las pruebas de normalidad fueron realizadas por separado).
+
+También se decidió probar con 3 y 4 factores, para descubrir cual de los dos facilitaría las interpretaciones.
+
+```{r message=FALSE, warning=FALSE}
+
+mod1 = fa(R, nfactors = 3, rotate = "varimax", fm = "pa") 
+mod2 = fa(R, nfactors = 4, rotate = "varimax", fm = "pa") 
+
+mod1$loadings
+mod2$loadings
+
+```
+
+##### Análisis de la comunalidad
+```{r}
+
+M1_commd = sort(mod1$communality,decreasing = T)
+M2_commd = sort(mod2$communality,decreasing = T)
+
+cbind(M1_commd,M2_commd)
+
+```
+
+Se alcanza a apreciar que la comunalidad explicada por ambos modelos es muy parecida, en ambos casos hayándose variables que no cuentan con comunalidades mayores a 0.5, es decir, que los factores no son capaces de explicar su varianza en común. 
+
+
+
+Tras analizar los pesos obtenidos y la comunalidad, *decidimos quedarnos con el segundo modelo*, aquel con 4 factores.
+
+**Es posible agrupar las variables en cada factor de la siguiente manera:**
+
+* PA1: NO,NOX, O3
+* PA2: PM10, PM2.5, CO
+* PA3: NO2
+* PA4: SO2
+
+```{r}
+
+fa.diagram(mod2, main = "Gráfico de Factores")
+
+```
+
+
+### Calculando el score:
+A continuación calculamos los scores a partir de las ecuaciones lineales obtenidas del análisis factorial y comparamos cada par de factores.
+
+```{r}
+
+facSco <- factor.scores(df_num,mod2)
+scores <- facSco$scores
+
+df_scores <- as.data.frame(scores)
+df_scores$pandemia <- df2$pandemia
+df_scores$PRS <- df2$PRS
+df_scores$RAINF <- df2$RAINF
+df_scores$RH <- df2$RH
+df_scores$SR <- df2$SR
+df_scores$TOUT <- df2$TOUT
+df_scores$WSR <- df2$WSR
+df_scores$WDR <- df2$WDR
+df_scores$Estacion <- df2$Estacion
+df_scores$periodo <- df2$periodo
+
+```
+En varias de las gráficas anteriores es posible notar que se forman 3 grupos; mientras que en otras parece ser que solamente 2 grupos son formados.
+
+
+##### Scores durante la pandemia
+```{r}
+
+scores_pan <- df_scores %>% 
+  filter(pandemia == 0)
+
+scores_pan <- as.matrix(scores_pan)
+
+par(mfrow = c(3,2))
+plot(scores_pan[,1],scores_pan[,2],xlab = "Factor 1", ylab = "Factor 2", col = "lightblue")
+plot(scores_pan[,1],scores_pan[,3],xlab = "Factor 1", ylab = "Factor 3", col = "lightblue")
+plot(scores_pan[,1],scores_pan[,4],xlab = "Factor 1", ylab = "Factor 4", col = "lightblue")
+plot(scores_pan[,2],scores_pan[,3],xlab = "Factor 2", ylab = "Factor 3", col = "lightblue")
+plot(scores_pan[,2],scores_pan[,4],xlab = "Factor 2", ylab = "Factor 4", col = "lightblue")
+plot(scores_pan[,3],scores_pan[,4],xlab = "Factor 3", ylab = "Factor 4", col = "lightblue")
+
+```
+
+```{r}
+scores_pan <- as.data.frame(scores_pan)
+max(as.numeric(scores_pan$PA2))
+```
+
+
+##### Scores sin pandemia
+```{r}
+
+scores_sin <- df_scores %>% 
+  filter(pandemia == 1)
+
+scores_sin <- as.matrix(scores_sin)
+
+par(mfrow = c(3,2))
+plot(scores_sin[,1],scores_sin[,2],xlab = "Factor 1", ylab = "Factor 2", col = "lightblue")
+plot(scores_sin[,1],scores_sin[,3],xlab = "Factor 1", ylab = "Factor 3", col = "lightblue")
+plot(scores_sin[,1],scores_sin[,4],xlab = "Factor 1", ylab = "Factor 4", col = "lightblue")
+plot(scores_sin[,2],scores_sin[,3],xlab = "Factor 2", ylab = "Factor 3", col = "lightblue")
+plot(scores_sin[,2],scores_sin[,4],xlab = "Factor 2", ylab = "Factor 4", col = "lightblue")
+plot(scores_sin[,3],scores_sin[,4],xlab = "Factor 3", ylab = "Factor 4", col = "lightblue")
+
+```
+```{r}
+scores_sin <- as.data.frame(scores_sin)
+max(as.numeric(scores_sin$PA2))
+```
+
+
+## Análisis de Conglomerados de las Variables
+Con el fin de contar con una alternativa para la agrupación de variables, se realiza un análisis de conglomerados jerárquico con distintos métodos.
+
+Los métodos mostrados a continuación son los que mejor se desempeñan de todos los que probamos, cada uno de estos parece agrupar las variables de diferente manera.
+
+```{r}
+
+J = hclust(as.dist(R), method = "complete")   
+plot(J, hang = -1, lwd = 2, col = "orange", main = "Método Completo", sub = "objetos", xlab = "n",ylab = c("distancia"))
+
+J = hclust(as.dist(R), method = "ward.D2")   
+plot(J, hang = -1, lwd = 2, col = "orange", main = "Método Ward D2", sub = "objetos", xlab = "n",ylab = c("distancia"))
+
+J = hclust(as.dist(R), method = "ward.D")   
+plot(J, hang = -1, lwd = 2, col = "orange", main = "Método Ward D", sub = "objetos", xlab = "n",ylab = c("distancia"))
+
+```
+
+
+
+```{r}
+
+write.csv(df_scores, file = "factores_v3.csv")
+
+```
+
+
+
+

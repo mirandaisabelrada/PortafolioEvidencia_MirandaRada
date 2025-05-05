@@ -1,0 +1,600 @@
+---
+title: "Comprensión y Preparación de Datos"
+output: html_document
+date: "2024-08-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Importación de los Datos
+
+```{r}
+
+#Leyendo datos
+sureste_20_21 <- read.csv("Sureste_20-21.csv")
+noreste_20_21 <- read.csv("Noreste_20-21.csv")
+centro_20_21 <- read.csv("Centro_20-21.csv")
+noroeste_20_21 <- read.csv("Noroeste_20-21.csv")
+suroeste_20_21 <- read.csv("Suroeste_20-21.csv")
+noroeste2_20_21 <- read.csv("Noroeste2_20-21.csv")
+norte_20_21 <- read.csv("Norte_20-21.csv")
+suroeste2_20_21 <- read.csv("Suroeste2_20-21.csv")
+sureste2_20_21 <- read.csv("Sureste2_20-21.csv")
+sureste3_20_21 <- read.csv("Sureste3_20-21.csv")
+sur_20_21 <- read.csv("Sur_20-21.csv")
+norte2_20_21 <- read.csv("Norte2_20-21.csv")
+noreste2_20_21 <- read.csv("Noreste2_20-21.csv")
+noreste3_20_21 <- read.csv("Noreste3_20-21.csv")
+
+sureste_22 <- read.csv("sureste_22.csv")
+noreste_22 <- read.csv("noreste_22.csv")
+centro_22 <- read.csv("centro_22.csv")
+noroeste_22 <- read.csv("noroeste_22.csv")
+suroeste_22 <- read.csv("suroeste_22.csv")
+noroeste2_22 <- read.csv("noroeste2_22.csv")
+norte_22 <- read.csv("norte_22.csv")
+suroeste2_22 <- read.csv("suroeste2_22.csv")
+sureste2_22 <- read.csv("sureste2_22.csv")
+sureste3_22 <- read.csv("sureste3_22.csv")
+sur_22 <- read.csv("sur_22.csv")
+norte2_22 <- read.csv("norte2_22.csv")
+noreste2_22 <- read.csv("noreste2_22.csv")
+noreste3_22 <- read.csv("noreste3_22.csv")
+
+sureste_23_24 <- read.csv("sureste_23-24.csv")
+noreste_23_24 <- read.csv("noreste_23-24.csv")
+centro_23_24 <- read.csv("centro_23-24.csv")
+noroeste_23_24 <- read.csv("noroeste_23-24.csv")
+suroeste_23_24 <- read.csv("suroeste_23-24.csv")
+noroeste2_23_24 <- read.csv("noroeste2_23-24.csv")
+norte_23_24 <- read.csv("norte_23-24.csv")
+suroeste2_23_24 <- read.csv("suroeste2_23-24.csv")
+sureste2_23_24 <- read.csv("sureste2_23-24.csv")
+sureste3_23_24 <- read.csv("sureste3_23-24.csv")
+sur_23_24 <- read.csv("sur_23-24.csv")
+norte2_23_24 <- read.csv("norte2_23-24.csv")
+noreste2_23_24 <- read.csv("noreste2_23-24.csv")
+noreste3_23_24 <- read.csv("noreste3_23-24.csv")
+
+#Agregando columna de estación
+sureste_20_21$Estacion <- "Tec"
+noreste_20_21$Estacion <- "San Nicolas"
+centro_20_21$Estacion <- "Obispado"
+noroeste_20_21$Estacion <- "San Bernabe"
+suroeste_20_21$Estacion <- "Santa Catarina"
+noroeste2_20_21$Estacion <- "Garcia"
+norte_20_21$Estacion <- "Escobedo"
+suroeste2_20_21$Estacion <- "San Pedro"
+sureste2_20_21$Estacion <- "Juarez"
+sureste3_20_21$Estacion <- "Cadereyta"
+sur_20_21$Estacion <- "Preparatoria ITESM"
+norte2_20_21$Estacion <- "Universidad"
+noreste2_20_21$Estacion <- "Apodaca"
+noreste3_20_21$Estacion <- "Pesqueria"
+
+#Agregando columna de estación
+sureste_22$Estacion <- "Tec"
+noreste_22$Estacion <- "San Nicolas"
+centro_22$Estacion <- "Obispado"
+noroeste_22$Estacion <- "San Bernabe"
+suroeste_22$Estacion <- "Santa Catarina"
+noroeste2_22$Estacion <- "Garcia"
+norte_22$Estacion <- "Escobedo"
+suroeste2_22$Estacion <- "San Pedro"
+sureste2_22$Estacion <- "Juarez"
+sureste3_22$Estacion <- "Cadereyta"
+sur_22$Estacion <- "Preparatoria ITESM"
+norte2_22$Estacion <- "Universidad"
+noreste2_22$Estacion <- "Apodaca"
+noreste3_22$Estacion <- "Pesqueria"
+
+#Agregando columna de estación
+sureste_23_24$Estacion <- "Tec"
+noreste_23_24$Estacion <- "San Nicolas"
+centro_23_24$Estacion <- "Obispado"
+noroeste_23_24$Estacion <- "San Bernabe"
+suroeste_23_24$Estacion <- "Santa Catarina"
+noroeste2_23_24$Estacion <- "Garcia"
+norte_23_24$Estacion <- "Escobedo"
+suroeste2_23_24$Estacion <- "San Pedro"
+sureste2_23_24$Estacion <- "Juarez"
+sureste3_23_24$Estacion <- "Cadereyta"
+sur_23_24$Estacion <- "Preparatoria ITESM"
+norte2_23_24$Estacion <- "Universidad"
+noreste2_23_24$Estacion <- "Apodaca"
+noreste3_23_24$Estacion <- "Pesqueria"
+
+```
+
+```{r}
+
+df_20_21 <- rbind(
+            sureste_20_21,
+            noreste_20_21,
+            centro_20_21,
+            noroeste_20_21,
+            suroeste_20_21,
+            noroeste2_20_21,
+            norte_20_21,
+            suroeste2_20_21,
+            sureste2_20_21,
+            sureste3_20_21,
+            sur_20_21,
+            norte2_20_21,
+            noreste2_20_21,
+            noreste3_20_21
+            )
+
+df_22 <- rbind(
+            sureste_22,
+            noreste_22,
+            centro_22,
+            noroeste_22,
+            suroeste_22,
+            noroeste2_22,
+            norte_22,
+            suroeste2_22,
+            sureste2_22,
+            sureste3_22,
+            sur_22,
+            norte2_22,
+            noreste2_22,
+            noreste3_22
+            )
+
+df_23_24 <- rbind(
+            sureste_23_24,
+            noreste_23_24,
+            centro_23_24,
+            noroeste_23_24,
+            suroeste_23_24,
+            noroeste2_23_24,
+            norte_23_24,
+            suroeste2_23_24,
+            sureste2_23_24,
+            sureste3_23_24,
+            sur_23_24,
+            norte2_23_24,
+            noreste2_23_24,
+            noreste3_23_24
+            )
+
+df <- rbind(df_20_21,df_22,df_23_24)
+
+```
+
+```{r warning=FALSE}
+
+df$CO <- as.double(df$CO)
+df$NO <- as.double(df$NO)
+df$NO2 <- as.double(df$NO2)
+df$NOX <- as.double(df$NOX)
+df$O3 <- as.double(df$O3)
+df$PM10 <- as.double(df$PM10)
+df$PM2.5 <- as.double(df$PM2.5)
+df$PRS <- as.double(df$PRS)
+df$RAINF <- as.double(df$RAINF)
+df$RH <- as.double(df$RH)
+df$SO2 <- as.double(df$SO2)
+df$SR <- as.double(df$SR)
+df$TOUT <- as.double(df$TOUT)
+df$WSR <- as.double(df$WSR)
+df$WDR <- as.double(df$WDR)
+df$date <- as.POSIXct(df$date)
+
+str(df)
+
+```
+
+## Limpieza
+
+### Eliminando valores sin sentido
+
+Es importante mencionar que se puede realizar una limpieza a partir de los siguientes supuestos:
+
+-   Ningún componente del aire puede tener una concentración menor o igual a 0.
+-   La presión atmosférica (PRS) no puede tener un valor menor o igual a 0.
+-   La precipitación (RAINF) no puede tener valores menores a 0.
+-   La humedad relativa (RH) debe de tener un valor de 0 a 100.
+-   La radiación solar (SR) no puede tener valores menores a 0.
+-   La dirección del viento (WDR) debe tener valores entre 1 y 360.
+
+```{r}
+library(skimr)
+skim_without_charts(df)
+
+```
+
+Observamos que muchos de los supuestos de arriba no son respetados en varios casos, por lo que eliminaremos los datos que no los cumplan, volviéndolos datos nulos.
+
+```{r}
+
+df$CO[df$CO <= 0] <- NA
+df$NO[df$NO <= 0] <- NA
+df$NO2[df$NO2 <= 0] <- NA
+df$NOX[df$NOX <= 0] <- NA
+df$O3[df$O3 <= 0] <- NA
+df$PM10[df$PM10 <= 0] <- NA
+df$PM2.5[df$PM2.5 <= 0] <- NA
+df$SO2[df$SO2 <= 0] <- NA
+df$PRS[df$PRS <= 0] <- NA
+df$RAINF[df$RAINF < 0] <- NA
+df$RH[df$RH < 0 | df$RH > 100] <- NA
+df$SR[df$SR < 0] <- NA
+df$WDR[df$WDR < 1 | df$WDR > 360] <- NA
+
+skim_without_charts(df)
+
+```
+
+```{r}
+print(head(df,5))
+```
+
+### Eliminación de Datos Faltantes
+
+```{r}
+
+# Tamaño del dataframe antes de eliminar filas con más de 6 columnas vacías
+print(dim(df))
+
+```
+
+```{r}
+# Sumar los valores nulos de cada columna
+na_counts_base <- colSums(is.na(df))
+print(na_counts_base)
+```
+
+```{r}
+# Eliminar filas con más de 6 NANs
+df <- df[rowSums(is.na(df)) <= 6, ]
+```
+
+```{r}
+
+#Valores nulos después de la eliminación en cada columna
+na_counts_base <- colSums(is.na(df))
+print(na_counts_base)
+
+```
+
+```{r}
+# Tamaño del dataframe después de eliminar filas con más de 6 columnas vacías
+print(dim(df))
+```
+
+### Eliminación de Filas Duplicadas
+
+```{r}
+#Revisar la cantidad de datos duplicados que hay en el dataframe.
+sum(duplicated(df))
+```
+
+```{r}
+# Creacion de un dataframe nuevo sin datos duplicados. 
+df <- unique(df)
+```
+
+```{r}
+# Revisamos el tamaño del dataframe tras la eliminación de los duplicados
+print(dim(df))
+```
+
+```{r}
+#Revisar que se hayan eliminado los duplicados correctamente. 
+sum(duplicated(df))
+```
+
+## Etapa 2
+
+### Cálculo de medidas estadísticas
+
+#### Variables Cuantitativas
+
+##### CO
+
+```{r, warning=FALSE}
+library(DescTools)
+summary(df$CO, na.rm = TRUE)
+cat("Moda:", Mode(df$CO, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$CO, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$CO, na.rm = TRUE), "\n")
+```
+
+##### NO
+
+```{r, warning=FALSE}
+summary(df$NO, na.rm = TRUE)
+cat("Moda:", Mode(df$NO, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$NO, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$NO, na.rm = TRUE), "\n")
+```
+
+##### NO2
+
+```{r, warning=FALSE}
+summary(df$NO2, na.rm = TRUE)
+cat("Moda:", Mode(df$NO2, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$NO2, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$NO2, na.rm = TRUE), "\n")
+```
+
+##### NOX
+
+```{r, warning=FALSE}
+summary(df$NOX, na.rm = TRUE)
+cat("Moda:", Mode(df$NOX, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$NOX, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$NOX, na.rm = TRUE), "\n")
+```
+
+##### O3
+
+```{r, warning=FALSE}
+summary(df$O3, na.rm = TRUE)
+cat("Moda:", Mode(df$O3, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$O3, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$O3, na.rm = TRUE), "\n")
+```
+
+##### PM10
+
+```{r, warning=FALSE}
+summary(df$PM10, na.rm = TRUE)
+cat("Moda:", Mode(df$PM10, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$PM10, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$PM10, na.rm = TRUE), "\n")
+```
+
+##### PM2.5
+
+```{r, warning=FALSE}
+summary(df$PM2.5, na.rm = TRUE)
+cat("Moda:", Mode(df$PM2.5, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$PM2.5, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$PM2.5, na.rm = TRUE), "\n")
+```
+
+##### PRS
+
+```{r, warning=FALSE}
+summary(df$PRS, na.rm = TRUE)
+cat("Moda:", Mode(df$PRS, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$PRS, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$PRS, na.rm = TRUE), "\n")
+```
+
+##### RAINF
+
+```{r, warning=FALSE}
+summary(df$RAINF, na.rm = TRUE)
+cat("Moda:", Mode(df$RAINF, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$RAINF, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$RAINF, na.rm = TRUE), "\n")
+```
+
+##### RH
+
+```{r, warning=FALSE}
+summary(df$RH, na.rm = TRUE)
+cat("Moda:", Mode(df$RH, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$RH, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$RH, na.rm = TRUE), "\n")
+```
+
+##### SO2
+
+```{r, warning=FALSE}
+summary(df$SO2, na.rm = TRUE)
+cat("Moda:", Mode(df$SO2, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$SO2, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$SO2, na.rm = TRUE), "\n")
+```
+
+##### SR
+
+```{r, warning=FALSE}
+summary(df$SR, na.rm = TRUE)
+cat("Moda:", Mode(df$SR, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$SR, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$SR, na.rm = TRUE), "\n")
+```
+
+##### TOUT
+
+```{r, warning=FALSE}
+summary(df$TOUT, na.rm = TRUE)
+cat("Moda:", Mode(df$TOUT, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$TOUT, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$TOUT, na.rm = TRUE), "\n")
+```
+
+##### WSR
+
+```{r, warning=FALSE}
+summary(df$WSR, na.rm = TRUE)
+cat("Moda:", Mode(df$WSR, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$WSR, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$WSR, na.rm = TRUE), "\n")
+```
+
+##### WDR
+
+```{r, warning=FALSE}
+summary(df$WDR, na.rm = TRUE)
+cat("Moda:", Mode(df$WDR, na.rm = TRUE), "\n")
+cat("Varianza:", var(df$WDR, na.rm = TRUE), "\n")
+cat("Desviación Estándar:", sd(df$WDR, na.rm = TRUE), "\n")
+```
+
+#### Variables cualitativas.
+
+```{r}
+library(dplyr)
+frec_E<-df %>% count(Estacion)
+frec_E
+```
+
+```{r}
+frec_D<-df %>% count(date)
+frec_D
+```
+
+### Explora los Datos Utilizando Herramientas de Visualización
+
+#### Variables Cualitativas
+
+##### Análisis de Cuartiles
+
+```{r}
+
+df %>% 
+  select(-date,-Estacion) %>% 
+  skim
+
+```
+
+##### Análisis de Datos Atípicos
+
+```{r}
+library(tidyr)
+# Creamos la función para detectar datos atípicos
+detect_outlier <- function(x) {
+   
+  # Se calcula el primer cuartil
+  Cuar1 <- quantile(x, probs=.25)
+   
+  # Se calcula el tercer cuartil
+  Cuar3 <- quantile(x, probs=.75)
+   
+  # Se calcula el rango intercuartílico
+  RI = Cuar3 - Cuar1
+   
+  # Regresa verdadero si algún dato es 2.5 veces el rango intercuartílico mayor o menor que el tercer o primer cuartil. 
+  x > Cuar3 + (RI * 2.5) | x < Cuar1 - (RI * 2.5)
+}
+ 
+dfff <- df %>% 
+  drop_na()
+
+sumita <- sum(detect_outlier(dfff$CO))
+print(paste("El número de datos atípicos en CO es igual a ", sumita))
+sumita <- sum(detect_outlier(dfff$NO))
+print(paste("El número de datos atípicos en NO es igual a ", sumita))
+sumita <- sum(detect_outlier(dfff$NO2))
+print(paste("El número de datos atípicos en NO2 es igual a ", sumita))
+sumita <- sum(detect_outlier(dfff$NOX))
+print(paste("El número de datos atípicos en NOX es igual a ", sumita))
+sumita <- sum(detect_outlier(dfff$O3))
+print(paste("El número de datos atípicos en O3 es igual a ", sumita))
+sumita <- sum(detect_outlier(dfff$PM10))
+print(paste("El número de datos atípicos en PM10 es igual a ", sumita))
+sumita <- sum(detect_outlier(dfff$PM2.5))
+print(paste("El número de datos atípicos en PM2.5 es igual a ", sumita))
+sumita <- sum(detect_outlier(dfff$SO2))
+print(paste("El número de datos atípicos en SO2 es igual a ", sumita))
+```
+
+##### Gráficos de Caja
+
+```{r}
+
+par(mfrow = c(1,2))
+boxplot(df$CO, main = "CO", col = "lightyellow")
+boxplot(df$NO, main = "NO", col = "lightyellow")
+boxplot(df$NO2, main = "NO2", col = "lightyellow")
+boxplot(df$NOX, main = "NOX", col = "lightyellow")
+boxplot(df$O3, main = "O3", col = "lightyellow")
+boxplot(df$PM10, main = "PM10", col = "lightyellow")
+boxplot(df$PM2.5, main = "PM2.5", col = "lightyellow")
+boxplot(df$SO2, main = "SO2", col = "lightyellow")
+
+```
+
+##### Histogramas
+
+```{r}
+
+par(mfrow = c(2,2))
+hist(df$CO, main = "Histograma de CO", xlab = "CO", col = "lightyellow")
+hist(df$NO, main = "Histograma de NO", xlab = "NO", col = "lightyellow")
+hist(df$NO2, main = "Histograma de NO2", xlab = "NO2", col = "lightyellow")
+hist(df$NOX, main = "Histograma de NOX", xlab = "NOX", col = "lightyellow")
+hist(df$O3, main = "Histograma de O3", xlab = "O3", col = "lightyellow")
+hist(df$PM10, main = "Histograma de PM10", xlab = "PM10", col = "lightyellow")
+hist(df$PM2.5, main = "Histograma de PM2.5", xlab = "PM2.5", col = "lightyellow")
+hist(df$SO2, main = "Histograma de SO2", xlab = "SO2", col = "lightyellow")
+
+```
+
+##### Correlación de las Variables
+
+*Matriz de Varianzas y Covarianzas*
+
+```{r}
+
+Sig <- df %>% 
+  select(-date,-Estacion) %>% 
+  cov(use = "na.or.complete")
+
+Sig
+
+```
+
+*Matriz de Covarianzas*
+
+```{r}
+
+Rho <- df %>% 
+  select(-date,-Estacion) %>% 
+  cor(use = "na.or.complete")
+
+Rho
+
+```
+
+```{r}
+
+heatmap(Rho, main = "Mapa de Calor",)
+
+```
+
+#### Variables Cuantitativas
+
+##### Diagramas de Barras
+
+```{r}
+library(ggplot2)
+ggplot(data = df) +
+  geom_bar(mapping = aes(x = Estacion)) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(title = "Gráfico de Barras de Estaciones")
+
+```
+
+#### Diagrama de Pastel
+
+```{r}
+cTec <- sum(df$Estacion == "Tec")
+cApodaca <- sum(df$Estacion == "Apodaca")
+cCadereyta <- sum(df$Estacion == "Cadereyta")
+cEscobedo <- sum(df$Estacion == "Escobedo")
+cGarcia <- sum(df$Estacion == "Garcia")
+cJuarez <- sum(df$Estacion == "Juarez")
+cObispado <- sum(df$Estacion == "Obispado")
+cPesqueria <- sum(df$Estacion == "Pesqueria")
+cPreparatoriaItesm <- sum(df$Estacion == "Preparatoria ITESM")
+cSanBernabe <- sum(df$Estacion == "San Bernabe")
+cSanNicolas <- sum(df$Estacion == "San Nicolas")
+cSanPedro <- sum(df$Estacion == "San Pedro")
+cSantaCatarina <- sum(df$Estacion == "Santa Catarina")
+cUniversidad <- sum(df$Estacion == "Universidad")
+
+
+prop <- c(cTec,cApodaca,cCadereyta,cEscobedo,cGarcia,cJuarez,cObispado,cPesqueria,cPreparatoriaItesm,cSanBernabe,cSanNicolas,cSanPedro,cSantaCatarina,cUniversidad)
+
+pie(prop,labels = c("Tec","Apodaca","Cadereyta","Escobedo","Garcia","Juarez","Obispado","Pesquería","Preparatoria ITESM","San Bernabe","San Nicolás","San Pedro","Santa Catarina","Universidad"), main = "Estaciones", col = rainbow(length(prop)))
+```

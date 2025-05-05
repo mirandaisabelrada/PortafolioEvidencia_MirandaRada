@@ -1,0 +1,497 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+# Carga de datos
+```{r}
+#Se cargan los datos a un dataframe.
+df<- read.csv("/Users/mirisrc/Downloads/df_v5.csv")
+head(df,40)
+```
+
+
+
+
+```{r, warning=FALSE}
+#Se transforma la variable de fecha. 
+library(base)
+library(lubridate)
+
+df$date<- as.Date(df$date,"%d/%m/%y")
+
+
+```
+
+
+```{r}
+head(df,5)
+```
+# Creación de periodos
+
+
+```{r}
+library(dplyr)
+
+# Asumimos que df$date es una columna con fechas
+df <- df %>%
+  mutate(
+    periodo = case_when(
+      date <= "2020-03-16" ~ 1,
+      date > "2020-03-16" & date <= "2021-03-16" ~ 2,
+      date > "2021-03-16" & date <= "2022-03-16" ~ 3,
+      date > "2022-03-16" & date <= "2023-03-16" ~ 4,
+      TRUE ~ 5
+    )
+  )
+
+# Mostrar los primeros y últimos valores de df
+head(df, 5)
+tail(df, 5)
+
+```
+
+```{r}
+library(dplyr)
+
+# Se determina cuando corresponden a pandemia.
+df <- df %>%
+  mutate(
+    pandemia = case_when(
+      periodo == 2 | periodo == 3 ~ 0,
+      TRUE ~ 1
+    )
+  )
+
+# Mostrar los primeros y últimos valores de df
+head(df, 5)
+tail(df, 5)
+
+```
+
+# Creación de subsets
+
+```{r}
+#Se crea un subset para los datos de antes de la pandemia. 
+em20<- subset(df,subset=date<="2020-03-16")
+
+tail(em20,5)
+```
+
+```{r}
+# Año 0, año de la pandemia
+a0<- subset(df,subset=(date>"2020-03-16" & date<="2021-03-16"))
+tail(a0,5)
+```
+```{r}
+# Porcentaje de NOX en el año 0
+sum(is.na(a0$NOX))/nrow(a0)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a0$NO2))/nrow(a0)*100
+
+# Porcentaje de NO en el año 0
+sum(is.na(a0$NO))/nrow(a0)*100
+```
+
+```{r}
+#Subset de 1 año después de la pandemia. 
+a1<- subset(df,subset=(date>"2021-03-16" & date<="2022-03-16"))
+tail(a1,5)
+
+```
+
+```{r}
+#Subset de 2 años después de la pandemia. 
+a2<- subset(df,subset=(date>"2022-03-16" & date<="2023-03-16"))
+tail(a2,5)
+```
+
+```{r}
+# #Subset de 3 años después de la pandemia. (Incluye todo el año 2024)
+a3<- subset(df,subset=(date>"2020-03-16"))
+tail(a3,5)
+```
+
+
+# Boxplots y ANOVA
+
+## CO
+
+```{r}
+#Creación de la gráfica de caja y bigote para CO. 
+boxplot(CO ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+ 
+```{r}
+#ANOVA del CO 
+df$periodo=as.factor(df$periodo)
+mod_CO = aov(CO ~ periodo, data = df)
+summary(mod_CO)
+```
+```{r}
+#Prueba de Anderson-Darling para normalidad. 
+ad.test(mod_CO$residuals)
+```
+```{r}
+#Prueba de Bartlett para homocedasticidad. 
+library(car)
+bartlett.test(CO ~ periodo, data = df)
+```
+```{r}
+#Prueba de Durbin - Watson para CO 
+library(lmtest)
+dwtest(mod_CO)
+```
+
+## NO
+
+```{r}
+#Creación de la gráfica de caja y bigote para NO 
+boxplot(NO ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+
+```{r}
+#ANOVA del NO 
+df$periodo=as.factor(df$periodo)
+mod_NO = aov(NO ~ periodo, data = df)
+summary(mod_NO)
+```
+
+```{r}
+#Prueba de Durbin - Watson para NO 
+library(lmtest)
+dwtest(mod_NO)
+```
+
+## NO2
+
+```{r}
+#Creación de la gráfica de caja y bigote para CO. 
+boxplot(NO2 ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del NO2 
+df$periodo=as.factor(df$periodo)
+mod_NO2 = aov(NO2 ~ periodo, data = df)
+summary(mod_NO2)
+```
+
+```{r}
+#Prueba de Durbin - Watson para NO2
+library(lmtest)
+dwtest(mod_NO2)
+```
+
+## NOX
+
+```{r}
+#Creación de la gráfica de caja y bigote para CO. 
+boxplot(NOX ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+
+```{r}
+#ANOVA del NOX
+df$periodo=as.factor(df$periodo)
+mod_NOX = aov(NOX ~ periodo, data = df)
+summary(mod_NOX)
+```
+
+```{r}
+#Prueba de Durbin - Watson para NO 
+library(lmtest)
+dwtest(mod_NOX)
+```
+
+```{r}
+#ANOVA del NO 
+df$periodo=as.factor(df$periodo)
+mod_NO = aov(NO ~ periodo, data = df)
+summary(mod_NO)
+```
+
+```{r}
+#Prueba de Durbin - Watson para NO 
+library(lmtest)
+dwtest(mod_NO)
+```
+## O3
+
+```{r}
+#Creación de la gráfica de caja y bigote para O3. 
+boxplot(O3 ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del O3
+df$periodo=as.factor(df$periodo)
+mod_O3 = aov(O3 ~ periodo, data = df)
+summary(mod_O3)
+```
+```{r}
+#Prueba de Independencia para O3 
+library(lmtest)
+bgtest(mod_O3)
+```
+
+## PM10
+
+```{r}
+#Creación de la gráfica de caja y bigote para PM10
+boxplot(PM10 ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del PM10
+df$periodo=as.factor(df$periodo)
+mod_PM10 = aov(PM10 ~ periodo, data = df)
+summary(mod_PM10)
+```
+```{r}
+#Prueba de Anderson-Darling para normalidad. 
+ad.test(mod_PM10$residuals)
+```
+```{r}
+#Prueba de Bartlett para homocedasticidad. 
+library(car)
+bartlett.test(PM10 ~ periodo, data = df)
+```
+
+```{r}
+#Prueba de Durbin - Watson para PM10
+library(lmtest)
+dwtest(mod_PM10)
+```
+## PM2.5
+
+```{r}
+#Creación de la gráfica de caja y bigote para PM2.5
+boxplot(PM2.5 ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del PM2.5
+df$periodo=as.factor(df$periodo)
+mod_PM2.5 = aov(PM2.5 ~ periodo, data = df)
+summary(mod_PM2.5)
+```
+```{r}
+#Prueba de Durbin - Watson para PM2.5
+library(lmtest)
+dwtest(mod_PM2.5)
+```
+```{r}
+
+# Porcentaje de NAN 
+sum(is.na(em20$PM2.5))/nrow(em20)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a0$PM2.5))/nrow(a0)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a1$PM2.5))/nrow(a1)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a2$PM2.5))/nrow(a2)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a3$PM2.5))/nrow(a3)*100
+
+
+
+```
+
+
+## PRS
+
+```{r}
+#Creación de la gráfica de caja y bigote para PRS
+boxplot(PRS ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del PRS
+df$periodo=as.factor(df$periodo)
+mod_PRS = aov(PRS ~ periodo, data = df)
+summary(mod_PRS)
+```
+```{r}
+#Prueba de Durbin - Watson para PRS
+library(lmtest)
+dwtest(mod_PRS)
+```
+## RAINF
+
+```{r}
+#Creación de la gráfica de caja y bigote para RAINF 
+boxplot(RAINF ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+
+```{r}
+#ANOVA del RAINF
+df$periodo=as.factor(df$periodo)
+mod_R = aov(RAINF ~ periodo, data = df)
+summary(mod_R)
+```
+```{r}
+#Prueba de Durbin - Watson para RAINF
+library(lmtest)
+dwtest(mod_R)
+```
+
+
+## RH
+
+```{r}
+#Creación de la gráfica de caja y bigote para RH 
+boxplot(RH ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del RH
+df$periodo=as.factor(df$periodo)
+mod_RH = aov(RH ~ periodo, data = df)
+summary(mod_RH)
+```
+```{r}
+#Prueba de Durbin - Watson para RH
+library(lmtest)
+dwtest(mod_RH)
+```
+## SO2
+
+```{r}
+#Creación de la gráfica de caja y bigote para SO2 
+boxplot(SO2 ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del SO2
+df$periodo=as.factor(df$periodo)
+mod_SO2 = aov(SO2 ~ periodo, data = df)
+summary(mod_SO2)
+```
+```{r}
+#Prueba de Anderson-Darling para normalidad. 
+ad.test(mod_SO2$residuals)
+```
+```{r}
+#Prueba de Bartlett para homocedasticidad. 
+library(car)
+bartlett.test(SO2 ~ periodo, data = df)
+```
+```{r}
+#Prueba de Durbin - Watson para SO2
+library(lmtest)
+dwtest(mod_SO2)
+```
+```{r}
+# Porcentaje de NAN 
+sum(is.na(em20$SO2))/nrow(em20)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a0$SO2))/nrow(a0)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a1$SO2))/nrow(a1)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a2$SO2))/nrow(a2)*100
+
+# Porcentaje de NO2 en el año 0
+sum(is.na(a3$SO2))/nrow(a3)*100
+
+```
+
+
+## SR
+
+```{r}
+#Creación de la gráfica de caja y bigote para SR
+boxplot(SR ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del SR
+df$periodo=as.factor(df$periodo)
+mod_SR = aov(SR ~ periodo, data = df)
+summary(mod_SR)
+```
+```{r}
+#Prueba de Durbin - Watson para SR
+library(lmtest)
+dwtest(mod_SR)
+```
+## TOUT
+
+```{r}
+#Creación de la gráfica de caja y bigote para TOUT 
+boxplot(TOUT ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del TOUT
+df$periodo=as.factor(df$periodo)
+mod_TOUT = aov(TOUT ~ periodo, data = df)
+summary(mod_TOUT)
+```
+```{r}
+#Prueba de Durbin - Watson para TOUT
+library(lmtest)
+dwtest(mod_TOUT)
+```
+## WSR
+
+```{r}
+#Creación de la gráfica de caja y bigote para WSR 
+boxplot(WSR ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del WSR
+df$periodo=as.factor(df$periodo)
+mod_WSR = aov(WSR ~ periodo, data = df)
+summary(mod_WSR)
+```
+```{r}
+#Prueba de Durbin - Watson para WSR
+library(lmtest)
+dwtest(mod_WSR)
+```
+## WDR
+
+```{r}
+#Creación de la gráfica de caja y bigote para WDR 
+boxplot(WDR ~ periodo, data = df, col = c("skyblue", "violet", "lightpink","orchid"))
+```
+```{r}
+#ANOVA del WDR
+df$periodo=as.factor(df$periodo)
+mod_WDR = aov(WDR ~ periodo, data = df)
+summary(mod_WDR)
+```
+```{r}
+#Prueba de Durbin - Watson para WDR
+library(lmtest)
+dwtest(mod_WDR)
+```
+
+# Prueba de Kruskal Wallis 
+
+```{r}
+df<-na.omit(df)
+#Desarrollo de la prueba de Kruskal - Wallis para O3. 
+df$periodo=as.factor(df$periodo)
+mod_O3_2= kruskal.test(O3~periodo, data=df)
+mod_O3_2
+```
+
+```{r}
+#Prueba de Levene para O3
+library(car)
+leveneTest(O3 ~ periodo, data = df, center = "median")
+```
+```{r}
+#Desarrollo de la prueba de Kruskal - Wallis para PM10. 
+df$periodo=as.factor(df$periodo)
+mod_PM10_2= kruskal.test(PM10~periodo, data=df)
+mod_PM10_2
+```
+
+```{r}
+#Prueba de Levene para O3
+library(car)
+leveneTest(PM10 ~ periodo, data = df, center = "median")
+```
