@@ -1,0 +1,6 @@
+En esta carpeta se pueden ver los archivos relacionados con el proyecto de la materia Análisis de ciencia de datos. 
+En este proyecto se tenía la intención de crear varios modelos con los que se podría predecir si los mexicanos ganarían más o menos que el 
+salario promedio en México. Para poder hacer estos modelos y predicciones se tomaban en cuenta varias variables como edad, género, nivel de 
+educación, entre otros. Para poder verificar que tan buenos eran los modelos que se estaban realizando se decidió probar varios tipos de modelos
+y evaluarlos con la intención de establecer cual tiene el mejor rendimiento. Algunos de los modelos que se crearon fueron Arboles de decisión, 
+Random Forest, entre otros. 
