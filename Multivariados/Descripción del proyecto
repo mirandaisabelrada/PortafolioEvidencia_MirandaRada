@@ -1,0 +1,6 @@
+En esta carpeta se exponen todos los archivos creados para la realización de mi proyecto para la clase de Aplicación de métodos multivariados 
+en ciencia de datos. En este proyecto se analizaron las bases de datos proporcionadas por el CIMA para ver si se puede identificar una relación
+entre la presencia de los contaminantes y si era la época de pandemia. Para realizar este análisis se tomaron en cuenta los diferentes
+contaminantes, la epoca del año, condiciones meteorológicas y otros factores. Para hacer este análisis se desarrollaron modelos mixtos y se 
+utilizó un análisis factorial para revisar cuales de los factores analizados tiene un mayor impacto en la calidad del aire de la zona metropolitana 
+de Monterrey. 
