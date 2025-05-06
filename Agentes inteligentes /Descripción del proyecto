@@ -1,10 +1,6 @@
 En esta carpeta se pueden ver las 3 etapas de mi reto creado para la materia de "Diseño de agentes inteligentes". La primera etapa 
 de este reto consistió principalmente en investigación sobre los conceptos y herramientas relacionadas con un proyecto de este tipo y 
-como se podrían programar las siguientes etapas de este proyecto. 
-
-La segunda etapa consistió en el planeamiento de las rutas que debería de seguir el rover programado cuando este en Marte. 
+como se podrían programar las siguientes etapas de este proyecto. La segunda etapa consistió en el planeamiento de las rutas que debería de seguir el rover programado cuando este en Marte. 
 Para realizar esta etapa fue necesario probar 4 algoritmos de búsqueda diferentes variando los parámetros para ver cual encontraba 
-rutas más eficientes. 
-
-La tercera etapa consistió en uso de 2 algoritmos de búsqueda diferentes con las cuales se buscaría la ruta más eficiente para descender 
+rutas más eficientes. La tercera etapa consistió en uso de 2 algoritmos de búsqueda diferentes con las cuales se buscaría la ruta más eficiente para descender 
 a un crater sin causarle daños al rover a través de su descenso. 
