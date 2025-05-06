@@ -1,0 +1,4 @@
+En esta carpeta se pueden ver los dos notebooks donde se desarrolló en proyecto de Redes Neuronales. En el primero se utilizó una red 
+convolucional con la intención de que pudiera clasificar imagenes según el tipo de vestimenta que se representaba en cada una. En el 
+segundo notebook se puede ver una red neuronal residual que se utilizó para analizar la misma base de datos. Después de crear ambos modelos
+se utilizaron métricas para verificar cual de ellas tuvo mayor precisión y por lo tanto poder ver cual es el modelo más efectivo. 
