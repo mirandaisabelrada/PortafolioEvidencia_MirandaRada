@@ -2,3 +2,6 @@ En esta carpeta se pueden ver los dos notebooks donde se desarrolló en proyecto
 convolucional con la intención de que pudiera clasificar imagenes según el tipo de vestimenta que se representaba en cada una. En el 
 segundo notebook se puede ver una red neuronal residual que se utilizó para analizar la misma base de datos. Después de crear ambos modelos
 se utilizaron métricas para verificar cual de ellas tuvo mayor precisión y por lo tanto poder ver cual es el modelo más efectivo. 
+La ventaja de probar 2 tipos de redes neuronales diferentes es que cada una analiza parametros y características diferentes por las imágenes,
+por lo tanto, me da una visión más completa de las características de las imágenes y cuales de estas son más útiles para realizar una 
+clasificación. 
