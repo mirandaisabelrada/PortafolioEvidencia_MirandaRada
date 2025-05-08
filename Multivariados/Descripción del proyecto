@@ -3,4 +3,5 @@ en ciencia de datos. En este proyecto se analizaron las bases de datos proporcio
 entre la presencia de los contaminantes y si era la época de pandemia. Para realizar este análisis se tomaron en cuenta los diferentes
 contaminantes, la epoca del año, condiciones meteorológicas y otros factores. Para hacer este análisis se desarrollaron modelos mixtos y se 
 utilizó un análisis factorial para revisar cuales de los factores analizados tiene un mayor impacto en la calidad del aire de la zona metropolitana 
-de Monterrey. 
+de Monterrey. Utilizar modelos mixtos y análisis factorial trajo la ventaja de que se podían analizar los factores y su efecto en la contaminación
+individualmente, por lo tanto se pueden generar conclusiones reales sobre el efecto de cada factor por si solo. 
