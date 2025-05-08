@@ -3,4 +3,5 @@ En este proyecto se tenía la intención de crear varios modelos con los que se 
 salario promedio en México. Para poder hacer estos modelos y predicciones se tomaban en cuenta varias variables como edad, género, nivel de 
 educación, entre otros. Para poder verificar que tan buenos eran los modelos que se estaban realizando se decidió probar varios tipos de modelos
 y evaluarlos con la intención de establecer cual tiene el mejor rendimiento. Algunos de los modelos que se crearon fueron Arboles de decisión, 
-Random Forest, entre otros. 
+Random Forest, entre otros. Utilizar varios tipos de modelos, con diferentes parámetros fue muy útil, ya que nos permitió ver las fortalezas y
+debilidades de cada modelo y eso puede ayudar a identificar cual será el mejor tipo de modelo para otras bases de datos en futuros proyectos. 
